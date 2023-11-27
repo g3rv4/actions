@@ -67,7 +67,7 @@ jobs:
                 --amend "$($packageUrl):latest-amd64" `
                 --amend "$($packageUrl):latest-arm64v8"
           docker manifest create `
-                "$($packageUrl):$($version) `
+                "$($packageUrl):$($version)" `
                 --amend "$($packageUrl):$($version)-amd64" `
                 --amend "$($packageUrl):$($version)-arm64v8"
           docker manifest push "$($packageUrl):latest"
