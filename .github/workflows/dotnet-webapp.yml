@@ -4,9 +4,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        architecture: [ amd64, arm64v8 ]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -28,33 +25,13 @@ jobs:
 
           $packageUrl = "ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}".ToLower()
 
-          docker buildx build -t "$($packageUrl):latest-${{ matrix.architecture }}" --build-arg ARCH=${{ matrix.architecture }} --cache-from="$($packageUrl):builder-${{ matrix.architecture }}" .
-          docker tag "$($packageUrl):latest-${{ matrix.architecture }}" "$($packageUrl):$($version)-${{ matrix.architecture }}"
-          docker push "$($packageUrl):latest-${{ matrix.architecture }}"
-          docker push "$($packageUrl):$($version)-${{ matrix.architecture }}"
-  push-manifest:
-    runs-on: ubuntu-latest
-    needs: [ build ]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # get entire git tree, required for nerdbank gitversioning
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build manifest
-        shell: pwsh
-        run: |
-          Push-Location src
-          $version = (nbgv get-version -f json | ConvertFrom-Json).SimpleVersion
-          Write-Host "Version $version"
-          Pop-Location
-
-          $packageUrl = "ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}".ToLower()
+          $archs = "amd64", "arm64v8"
+          foreach ($arch in $archs) {
+            docker build -t "$($packageUrl):latest-$($arch)" --build-arg ARCH=$($arch) .
+            docker tag "$($packageUrl):latest-$($arch)" "$($packageUrl):$($version)-$($arch)"
+            docker push "$($packageUrl):latest-$($arch)"
+            docker push "$($packageUrl):$($version)-$($arch)"
+          }
 
           docker manifest create `
                 "$($packageUrl):latest" `
